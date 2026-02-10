@@ -20,6 +20,7 @@ PATH
   remote: gems/supabase-realtime
   specs:
     supabase-realtime (0.1.0)
+      faraday (~> 2.0)
       websocket-client-simple (~> 0.8)
 
 PATH
