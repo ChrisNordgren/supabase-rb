@@ -119,10 +119,15 @@ module Supabase
 
       def append_order_param(key, value)
         existing = @url.query
-        # Append to existing order param if present
-        if existing&.include?("#{key}=")
-          @url.query = existing.gsub(/#{Regexp.escape(key)}=([^&]*)/) do
-            "#{key}=#{::Regexp.last_match(1)},#{value}"
+        # Match this parameter on a boundary: a plain `order` must not be found
+        # inside `posts.order`, and a referenced-table key must not match the
+        # plain one. `include?` did both, so a plain order appended after a
+        # referenced-table order was merged into the wrong parameter.
+        pattern = /(?:\A|&)#{Regexp.escape(key)}=([^&]*)/
+        if existing&.match?(pattern)
+          @url.query = existing.sub(pattern) do
+            prefix = ::Regexp.last_match(0).start_with?("&") ? "&" : ""
+            "#{prefix}#{key}=#{::Regexp.last_match(1)},#{value}"
           end
         else
           append_query_param(@url, key, value)

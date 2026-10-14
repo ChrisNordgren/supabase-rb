@@ -170,4 +170,33 @@ RSpec.describe "PostgREST Transforms" do
       expect(builder.headers["Prefer"]).to include("handling=strict,max-affected=5")
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Order parameter boundaries
+  # ---------------------------------------------------------------------------
+  describe "order parameter boundaries" do
+    it "keeps a plain order separate from a referenced-table order" do
+      builder = select_builder.order("name", referenced_table: "posts").order("created_at", ascending: false)
+      query = builder.url.query
+      expect(query).to include("posts.order=name.asc")
+      expect(query).to include("order=created_at.desc")
+    end
+
+    it "keeps a referenced-table order separate from a plain order" do
+      builder = select_builder.order("created_at", ascending: false).order("name", referenced_table: "posts")
+      query = builder.url.query
+      expect(query).to include("order=created_at.desc")
+      expect(query).to include("posts.order=name.asc")
+    end
+
+    it "still appends repeated orders to the same parameter" do
+      builder = select_builder.order("created_at", ascending: false).order("name")
+      expect(builder.url.query).to include("order=created_at.desc,name.asc")
+    end
+
+    it "still appends repeated referenced-table orders to the same parameter" do
+      builder = select_builder.order("name", referenced_table: "posts").order("id", referenced_table: "posts")
+      expect(builder.url.query).to include("posts.order=name.asc,id.asc")
+    end
+  end
 end
